@@ -33,10 +33,12 @@ import type {
   EventNeed,
   EventType,
   Group,
+  GroupDetail,
   GroupMember,
   GroupRole,
   Invitation,
   Presence,
+  ProfileMembership,
   RsvpStatus,
   User,
 } from '@/types';
@@ -50,10 +52,8 @@ export const authApi = {
 };
 
 // --- Profile (global) ---
-export interface ProfileResponse {
-  user: User;
-  memberships: Group[];
-}
+// GET /api/profile returns the user object directly, with memberships embedded.
+export type ProfileResponse = User & { memberships: ProfileMembership[] };
 export const profileApi = {
   get: () => api.get<ProfileResponse>('/profile').then((r) => r.data),
   update: (patch: Partial<User>) =>
@@ -64,15 +64,27 @@ export const profileApi = {
 export const groupsApi = {
   list: () => api.get<Group[]>('/groups').then((r) => r.data),
   create: (name: string) => api.post<Group>('/groups', { name }).then((r) => r.data),
-  get: (groupId: string) => api.get<Group>(`/groups/${groupId}`).then((r) => r.data),
+  get: (groupId: string) => api.get<GroupDetail>(`/groups/${groupId}`).then((r) => r.data),
   rename: (groupId: string, name: string) =>
-    api.patch<Group>(`/groups/${groupId}`, { name }).then((r) => r.data),
-  updateMyMembership: (groupId: string, patch: { isResident?: boolean; onboardedAt?: string }) =>
+    api.patch<GroupDetail>(`/groups/${groupId}`, { name }).then((r) => r.data),
+  // Only `isResident` is accepted (UpdateMembershipDto). `onboardedAt` is server-managed.
+  updateMyMembership: (groupId: string, patch: { isResident?: boolean }) =>
     api.patch(`/groups/${groupId}/members/me`, patch).then((r) => r.data),
   leave: (groupId: string) =>
     api.delete(`/groups/${groupId}/members/me`).then((r) => r.data),
-  members: (groupId: string) =>
-    api.get<GroupMember[]>(`/groups/${groupId}/members`).then((r) => r.data),
+  // No dedicated members route: the list is embedded in GET /groups/:id.
+  members: async (groupId: string): Promise<GroupMember[]> => {
+    const group = await api.get<GroupDetail>(`/groups/${groupId}`).then((r) => r.data);
+    return group.memberships.map((m) => ({
+      id: m.user.id,
+      name: m.user.name,
+      image: m.user.image,
+      city: m.user.city,
+      role: m.role,
+      memberColor: m.memberColor,
+      isResident: m.isResident,
+    }));
+  },
   setMemberRole: (groupId: string, userId: string, role: GroupRole) =>
     api.patch(`/groups/${groupId}/members/${userId}`, { role }).then((r) => r.data),
   removeMember: (groupId: string, userId: string) =>
@@ -89,8 +101,10 @@ export interface PresenceInput {
 export const presencesApi = {
   list: (groupId: string) =>
     api.get<Presence[]>(`/groups/${groupId}/presences`).then((r) => r.data),
+  // The API returns 200 with an EMPTY body when the user is not present today,
+  // which axios surfaces as ''. Normalize to null so callers can truthiness-check.
   today: (groupId: string) =>
-    api.get<Presence | null>(`/groups/${groupId}/presences/today`).then((r) => r.data),
+    api.get<Presence | ''>(`/groups/${groupId}/presences/today`).then((r) => r.data || null),
   create: (groupId: string, input: PresenceInput) =>
     api.post<Presence>(`/groups/${groupId}/presences`, input).then((r) => r.data),
   update: (groupId: string, id: string, input: Partial<PresenceInput>) =>

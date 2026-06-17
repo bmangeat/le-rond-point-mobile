@@ -53,14 +53,54 @@ export interface GroupMembership {
   joinedAt: string;
 }
 
+/**
+ * Item returned by GET /api/groups (groups.service.findMyGroups).
+ * The current user's membership fields are FLAT (myRole/myColor/...), not nested.
+ */
 export interface Group {
+  id: string; // group id
+  name: string;
+  memberCount: number;
+  myRole: GroupRole;
+  myColor: number;
+  isResident: boolean;
+  onboarded: boolean;
+  joinedAt: string;
+}
+
+/** A membership embedded in GET /api/groups/:id (with its user select). */
+export interface GroupMembershipWithUser {
+  id: string;
+  role: GroupRole;
+  memberColor: number;
+  isResident: boolean;
+  onboardedAt: string | null;
+  joinedAt: string;
+  userId: string;
+  user: { id: string; name: string; image: string | null; city: string | null };
+}
+
+/**
+ * Membership as embedded in GET /api/profile (profile.service.getProfile).
+ * NOTE: a different, flatter shape than `Group` (GET /api/groups). This is the
+ * one carried in AuthContext and used app-wide via useGroup().
+ */
+export interface ProfileMembership {
+  groupId: string;
+  role: GroupRole;
+  memberColor: number;
+  isResident: boolean;
+  onboardedAt: string | null;
+  group: { id: string; name: string };
+}
+
+/** Detail returned by GET /api/groups/:id (groups.service.findOne). */
+export interface GroupDetail {
   id: string;
   name: string;
   creatorId: string;
   createdAt: string;
-  memberCount?: number;
-  /** Current user's role/color in this group, when returned by GET /api/groups. */
-  membership?: Pick<GroupMembership, 'role' | 'memberColor' | 'isResident' | 'onboardedAt'>;
+  memberships: GroupMembershipWithUser[];
 }
 
 /** A member as seen inside a group (User joined with their GroupMembership). */
@@ -155,13 +195,19 @@ export interface Event {
   playlistUrl: string | null;
   groupId: string;
   createdAt: string;
-  // Hydrated on detail / list
+  // Hydrated on DETAIL (GET /events/:id) only.
   rsvps?: EventRsvp[];
   needs?: EventNeed[];
   expenses?: EventExpense[];
   comments?: EventComment[];
   photos?: EventPhoto[];
-  /** Current user's RSVP status, convenience field for list cards. */
+  // Present on the LIST (GET /events) only: relation counts (e.g. rsvps by status).
+  _count?: Record<string, number>;
+  /**
+   * NOT returned by the API. The list payload has `_count`/`host` but no per-user
+   * RSVP, so list-card chips can't show the user's own status without an extra
+   * lookup. See CLAUDE.md "Écarts API → hydratation".
+   */
   myRsvp?: RsvpStatus;
 }
 

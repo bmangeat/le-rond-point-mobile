@@ -8,13 +8,15 @@ import { useAuth } from '@/auth/AuthContext';
 export function useGroup() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
   const { memberships } = useAuth();
-  const group = memberships.find((g) => g.id === groupId);
-  const role = group?.membership?.role ?? 'MEMBER';
+  const membership = memberships.find((m) => m.groupId === groupId);
+  const role = membership?.role ?? 'MEMBER';
   return {
     groupId: groupId!,
-    group,
+    /** `{ id, name }` of the active group (from the profile membership). */
+    group: membership?.group,
+    membership,
     role,
     isAdmin: role === 'ADMIN',
-    memberColor: group?.membership?.memberColor ?? 1,
+    memberColor: membership?.memberColor ?? 1,
   };
 }

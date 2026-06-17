@@ -69,7 +69,7 @@ export default function Groups() {
             <Card>
               <View style={styles.cardRow}>
                 <Txt variant="h2">{item.name}</Txt>
-                {item.membership?.role === 'ADMIN' ? (
+                {item.myRole === 'ADMIN' ? (
                   <Badge label="Admin" color={colors.primary} bg={colors.primaryLight} />
                 ) : (
                   <Badge label="Membre" color={colors.mutedForeground} bg={colors.surfaceRaised} />

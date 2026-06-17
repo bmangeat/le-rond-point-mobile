@@ -16,7 +16,7 @@ export default function Index() {
   if (loading || !hydrated) return <Loading />;
   if (!isAuthenticated) return <Redirect href="/login" />;
 
-  const stillMember = lastGroupId && memberships.some((g) => g.id === lastGroupId);
+  const stillMember = lastGroupId && memberships.some((m) => m.groupId === lastGroupId);
   if (stillMember) return <Redirect href={`/${lastGroupId}`} />;
   return <Redirect href="/groups" />;
 }

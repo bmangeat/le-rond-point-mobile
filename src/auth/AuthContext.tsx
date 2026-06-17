@@ -3,13 +3,13 @@ import { authApi, profileApi } from '@/api/endpoints';
 import { api, setUnauthorizedHandler } from '@/api/client';
 import { tokenStore } from '@/api/tokenStore';
 import { useGroupStore } from '@/stores/groupStore';
-import type { Group, User } from '@/types';
+import type { ProfileMembership, User } from '@/types';
 
 interface AuthState {
   /** Still resolving stored tokens on cold start. */
   loading: boolean;
   user: User | null;
-  memberships: Group[];
+  memberships: ProfileMembership[];
   isAuthenticated: boolean;
   /** Exchange a Google idToken for API tokens, then load the profile. */
   signInWithGoogle: (idToken: string) => Promise<void>;
@@ -22,11 +22,12 @@ const AuthCtx = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
-  const [memberships, setMemberships] = useState<Group[]>([]);
+  const [memberships, setMemberships] = useState<ProfileMembership[]>([]);
   const clearGroup = useGroupStore((s) => s.clear);
 
   const loadProfile = useCallback(async () => {
-    const { user: u, memberships: m } = await profileApi.get();
+    // GET /profile returns the user object with memberships embedded.
+    const { memberships: m, ...u } = await profileApi.get();
     setUser(u);
     setMemberships(m);
   }, []);

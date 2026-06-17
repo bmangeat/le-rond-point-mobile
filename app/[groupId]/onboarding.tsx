@@ -27,7 +27,8 @@ export default function Onboarding() {
 
   const finish = useMutation({
     mutationFn: async () => {
-      await groupsApi.updateMyMembership(groupId, { isResident, onboardedAt: new Date().toISOString() });
+      // Only isResident is accepted by the API; onboardedAt is server-managed.
+      await groupsApi.updateMyMembership(groupId, { isResident });
       if (!noDate) await presencesApi.create(groupId, { startDate: start, endDate: end, availability: 'OPEN' });
     },
     onSuccess: async () => {

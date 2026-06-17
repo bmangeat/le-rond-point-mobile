@@ -31,7 +31,7 @@ export default function Profile() {
   // Reset the draft whenever the canonical profile changes.
   useEffect(() => setDraft({}), [user?.id]);
 
-  const activeMembership = memberships.find((g) => g.id === lastGroupId)?.membership;
+  const activeGroup = memberships.find((m) => m.groupId === lastGroupId);
   const merged = { ...user, ...draft } as User;
   const dirty = Object.keys(draft).length > 0;
 
@@ -61,12 +61,12 @@ export default function Profile() {
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg, paddingBottom: 120 }}>
         <View style={{ alignItems: 'center', gap: spacing.sm }}>
-          <Avatar uri={user.image} name={user.name} size={80} ring={activeMembership ? memberColor(activeMembership.memberColor) : undefined} />
+          <Avatar uri={user.image} name={user.name} size={80} ring={activeGroup ? memberColor(activeGroup.memberColor) : undefined} />
           <Txt variant="title">{user.name}</Txt>
           <Txt variant="muted">{user.email}</Txt>
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-            {activeMembership ? (
-              <Badge label={activeMembership.role === 'ADMIN' ? 'Admin' : 'Membre'} color={colors.primary} bg={colors.primaryLight} />
+            {activeGroup ? (
+              <Badge label={activeGroup.role === 'ADMIN' ? 'Admin' : 'Membre'} color={colors.primary} bg={colors.primaryLight} />
             ) : null}
             {user.globalRole === 'SUPER_ADMIN' ? <Badge label="Super Admin" color={colors.primary} bg={colors.primaryLight} /> : null}
           </View>

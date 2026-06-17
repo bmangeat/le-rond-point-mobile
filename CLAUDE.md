@@ -151,22 +151,34 @@ Toujours consommer ces tokens (pas de hex en dur dans les écrans). Police cible
 
 ---
 
-## 6. Écarts API (gaps connus — à confirmer côté NestJS)
+## 6. Écarts API (vérifiés contre l'API en marche)
 
-Le client est codé défensivement pour ces points ; l'UI les signale en clair.
+Contrat validé end-to-end le 2026-06-17 (register → profile → groups → presences → events).
+Points confirmés :
 
-- **Photos de sortie** : décrites dans `04-sorties.md` mais **aucune route** dans l'API
-  actuelle (`/events/:id/photos`, `/photos/zip`). UI photos non branchée.
-- **ICS / « Ajouter à mon agenda »** : pas de route `/events/:id/ics`.
-- **Upload photo de profil** : pas de `/profile/photo` (l'avatar Google est utilisé).
-- **Endpoints supposés mais non confirmés dans les contrôleurs** : `GET /groups/:gid/members`
-  (annuaire) et le détail réseaux/présences d'un membre public. Vérifier/aligner.
-- **Réponses hydratées** : les types (`Presence.user`, `Event.rsvps[].user`, `myRsvp`…)
-  supposent que l'API renvoie les relations utiles. À valider contre les services NestJS ;
-  ajuster `src/types/` et les `select` côté API si besoin.
+- **Routes 404 (non implémentées)** : `/events/:id/photos` + `/photos/zip` (photos de sortie),
+  `/events/:id/ics` (« Ajouter à mon agenda »), `/profile/photo` (upload avatar — on utilise
+  l'image Google). UI codée défensivement et signalée en clair.
+- **Pas de route `GET /groups/:id/members`** : la liste des membres est **embarquée dans
+  `GET /groups/:id`** (`group.memberships[].user`). `groupsApi.members()` la dérive de là.
+- **Deux shapes de membership distincts** (piège majeur) :
+  - `GET /profile` → l'objet **user directement**, avec `memberships:[{ groupId, role,
+    memberColor, isResident, onboardedAt, group:{id,name} }]`. C'est ce que porte `AuthContext`
+    (type `ProfileMembership`), consommé via `useGroup()`.
+  - `GET /groups` → `[{ id, name, memberCount, myRole, myColor, isResident, onboarded,
+    joinedAt }]` (type `Group`, **champs plats**), utilisé seulement par l'écran `/groups`.
+- **Hydratation liste vs détail des sorties** : `GET /events` renvoie `host` + `_count`
+  mais **pas** `rsvps` ni le RSVP de l'utilisateur ; `GET /events/:id` renvoie
+  `rsvps/needs/expenses/comments/photos`. ⇒ Les chips RSVP des **cards de liste** (accueil +
+  liste sorties) ne peuvent pas refléter le statut perso sans appel supplémentaire — à
+  améliorer (exploiter `_count`, ou batcher les RSVP).
+- **`GET /presences/today`** renvoie `200` + **corps vide** quand l'utilisateur n'est pas
+  présent (pas `null`). `presencesApi.today()` normalise `'' → null`.
+- **`PATCH /groups/:id/members/me`** n'accepte que `isResident` (`onboardedAt` est géré
+  côté serveur, pas exposé au client).
 
-Avant de coder un écran qui dépend d'un de ces points, **lire le contrôleur/service NestJS
-correspondant** dans `../le-rond-point-api/src/` plutôt que de se fier aux specs seules.
+Avant de coder un écran qui dépend d'un point sensible, **lire le contrôleur/service NestJS**
+dans `../le-rond-point-api/src/` — les specs décrivent l'app Next.js d'origine, pas l'API réelle.
 
 ---
 
