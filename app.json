@@ -37,7 +37,13 @@
         }
       ],
       "expo-asset",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Le Rond Point accède à tes photos pour les partager sur une sortie."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

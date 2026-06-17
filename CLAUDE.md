@@ -161,7 +161,13 @@ que `fontWeight` — la graisse est encodée dans le fichier de police. Préfér
 Contrat validé end-to-end le 2026-06-17 (register → profile → groups → presences → events).
 Points confirmés :
 
-- **Routes 404 (non implémentées)** : `/events/:id/photos` + `/photos/zip` (photos de sortie),
+- **Photos de sortie : IMPLÉMENTÉES** (API + mobile). `POST /events/:id/photos` (multipart
+  `file`, max 5, filtre mime image, 8 Mo) et `DELETE /events/:id/photos/:photoId`. **Stockage
+  disque local** côté API (`./uploads`, servi sur `/uploads/*` hors préfixe `/api`) — c'est du
+  **dev** : sur serverless le disque est éphémère, à remplacer par du stockage objet (S3/Blob).
+  Le mobile résout les URLs via `config.apiOrigin` (apiBaseUrl sans `/api`). TTL 7j après
+  `whenAt` affiché dans l'UI ; la suppression effective serait un cron (hors périmètre).
+- **Routes 404 (non implémentées)** : `/events/:id/photos/zip` (« Télécharger tout »),
   `/events/:id/ics` (« Ajouter à mon agenda »), `/profile/photo` (upload avatar — on utilise
   l'image Google). UI codée défensivement et signalée en clair.
 - **Pas de route `GET /groups/:id/members`** : la liste des membres est **embarquée dans
@@ -210,7 +216,8 @@ dans `../le-rond-point-api/src/` — les specs décrivent l'app Next.js d'origin
   (CRUD, **sélecteurs de date natifs**).
 - Sorties : liste, création (**date/heure native** + raccourcis ce soir/demain/week-end),
   détail (Qui vient + RSVP, Besoins claim/release, **Tricount complet** : ajout de dépense
-  + soldes « qui rend quoi » avec noms, Le fil/commentaires + **playlist** add/edit),
+  + soldes « qui rend quoi » avec noms, Le fil/commentaires + **playlist** add/edit +
+  **photos** : galerie, upload via expo-image-picker, suppression, max 5, date d'expiration),
   édition/annulation/suppression.
 - Membres : annuaire (recherche/filtres/tri, badges **« ici / bientôt là » calculés
   client-side** depuis les présences) + **profil public complet** (réseaux cliquables +
@@ -225,7 +232,8 @@ dans `../le-rond-point-api/src/` — les specs décrivent l'app Next.js d'origin
   (permission, token, handler de tap → deep-link).
 - **Sorties** : **sélecteur de lieu** (recherche/autocomplétion — actuellement champ texte
   libre ; la date/heure est un picker natif).
-- **Photos de sortie** : bloqué côté API (routes absentes — voir §6).
+- **Photos** : « Télécharger tout » (zip) non implémenté ; suppression auto J+7 (cron) à faire
+  côté API ; stockage à migrer vers du stockage objet pour la prod (voir §6).
 - **Polish restant** : **icône/splash** = placeholder « rond-point » généré (anneau blanc sur
   bleu, dans `assets/`, créé par script PNG sans dépendance) — à remplacer par un visuel
   définitif de designer si souhaité ; `KeyboardAvoidingView` reste à ajouter sur profil/admin

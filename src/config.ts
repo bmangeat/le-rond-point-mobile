@@ -14,6 +14,10 @@ const extra = (Constants.expoConfig?.extra ?? {}) as Partial<Extra>;
 export const config = {
   /** Base URL of the NestJS API, including the `/api` global prefix. */
   apiBaseUrl: extra.apiBaseUrl ?? 'http://localhost:3001/api',
+  /** Server origin without the /api prefix — used to resolve /uploads/* photo URLs. */
+  get apiOrigin() {
+    return this.apiBaseUrl.replace(/\/api\/?$/, '');
+  },
   inviteBaseUrl: extra.inviteBaseUrl ?? 'https://lerondpoint.app',
   google: {
     webClientId: extra.googleWebClientId ?? '',

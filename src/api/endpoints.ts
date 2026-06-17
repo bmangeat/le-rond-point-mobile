@@ -31,6 +31,7 @@ import type {
   EventComment,
   EventExpense,
   EventNeed,
+  EventPhoto,
   EventType,
   Group,
   GroupDetail,
@@ -166,6 +167,19 @@ export const eventsApi = {
     api.delete(`/groups/${groupId}/events/${id}/comments/${commentId}`).then((r) => r.data),
   reportComment: (groupId: string, id: string, commentId: string, reason?: string) =>
     api.post(`/groups/${groupId}/events/${id}/comments/${commentId}/report`, { reason }).then((r) => r.data),
+  // Multipart upload of a local image URI (from expo-image-picker).
+  addPhoto: (groupId: string, id: string, file: { uri: string; name: string; type: string }) => {
+    const form = new FormData();
+    // RN FormData accepts a { uri, name, type } object for file parts.
+    form.append('file', file as unknown as Blob);
+    return api
+      .post<EventPhoto>(`/groups/${groupId}/events/${id}/photos`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data);
+  },
+  removePhoto: (groupId: string, id: string, photoId: string) =>
+    api.delete(`/groups/${groupId}/events/${id}/photos/${photoId}`).then((r) => r.data),
 };
 
 // --- Admin ---

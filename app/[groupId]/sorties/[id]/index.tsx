@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Image, Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { eventsApi } from '@/api/endpoints';
 import { qk } from '@/api/queryClient';
+import { apiErrorMessage } from '@/api/client';
+import { config } from '@/config';
 import { useAuth } from '@/auth/AuthContext';
 import { useGroup } from '@/hooks/useGroup';
 import { Avatar, Badge, Button, Card, Chip, Loading, Txt } from '@/components/ui';
@@ -337,7 +340,35 @@ function Feed({ groupId, eventId }: { groupId: string; eventId: string }) {
     onSuccess: () => { setEditingPlaylist(false); void qc.invalidateQueries({ queryKey: qk.event(groupId, eventId) }); },
   });
 
+  const uploadPhoto = useMutation({
+    mutationFn: (file: { uri: string; name: string; type: string }) => eventsApi.addPhoto(groupId, eventId, file),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.event(groupId, eventId) }),
+    onError: (e) => Alert.alert('Upload impossible', apiErrorMessage(e)),
+  });
+  const removePhoto = useMutation({
+    mutationFn: (photoId: string) => eventsApi.removePhoto(groupId, eventId, photoId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.event(groupId, eventId) }),
+  });
+
+  async function pickAndUpload() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('Accès refusé', "Autorise l'accès aux photos dans les réglages.");
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+    if (res.canceled || !res.assets[0]) return;
+    const asset = res.assets[0];
+    const name = asset.fileName ?? `photo-${Date.now()}.jpg`;
+    uploadPhoto.mutate({ uri: asset.uri, name, type: asset.mimeType ?? 'image/jpeg' });
+  }
+
   if (!event) return <Loading />;
+
+  const photos = event.photos ?? [];
+  // TTL: photos expire 7 days after the event date (spec 04-sorties.md).
+  const expiry = new Date(new Date(event.whenAt).getTime() + 7 * 86_400_000);
+  const expiryLabel = expiry.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long' });
 
   return (
     <View style={{ gap: spacing.sm }}>
@@ -360,6 +391,31 @@ function Feed({ groupId, eventId }: { groupId: string; eventId: string }) {
         />
       )}
 
+      <Txt variant="h2" style={{ marginTop: spacing.md }}>Photos</Txt>
+      {photos.length > 0 ? (
+        <Txt variant="muted">Disponibles jusqu'au {expiryLabel}.</Txt>
+      ) : null}
+      <View style={styles.gallery}>
+        {photos.map((p) => {
+          const mine = p.uploaderId === user?.id;
+          return (
+            <View key={p.id} style={styles.photoWrap}>
+              <Image source={{ uri: `${config.apiOrigin}${p.url}` }} style={styles.photo} />
+              {mine || isAdmin ? (
+                <Pressable style={styles.photoDelete} onPress={() => removePhoto.mutate(p.id)} hitSlop={6}>
+                  <Txt style={{ color: colors.white, fontSize: 12 }}>✕</Txt>
+                </Pressable>
+              ) : null}
+            </View>
+          );
+        })}
+      </View>
+      {photos.length < 5 ? (
+        <Button title="📸 Ajouter une photo" variant="secondary" loading={uploadPhoto.isPending} onPress={pickAndUpload} />
+      ) : (
+        <Txt variant="muted">Maximum 5 photos atteint.</Txt>
+      )}
+
       <Txt variant="h2" style={{ marginTop: spacing.md }}>Le fil</Txt>
       {(event.comments ?? []).map((c) => (
         <Card key={c.id}>
@@ -380,7 +436,6 @@ function Feed({ groupId, eventId }: { groupId: string; eventId: string }) {
         <TextInput style={styles.inlineInput} value={text} onChangeText={setText} placeholder="Écrire un message…" placeholderTextColor={colors.mutedForeground} />
         <Button title="Envoyer" disabled={!text.trim()} loading={addComment.isPending} onPress={() => addComment.mutate()} />
       </View>
-      <Txt variant="muted" style={{ marginTop: spacing.sm }}>Photos : bloqué côté API (voir CLAUDE.md « Écarts API »).</Txt>
     </View>
   );
 }
@@ -391,4 +446,8 @@ const styles = StyleSheet.create({
   tab: { paddingVertical: spacing.md, marginRight: spacing.lg, borderBottomWidth: 2, borderBottomColor: 'transparent' },
   counters: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.md, borderWidth: 1, borderColor: colors.border },
   inlineInput: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: spacing.md, fontSize: 15, color: colors.foreground },
+  gallery: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  photoWrap: { width: 100, height: 100, borderRadius: radius.md, overflow: 'hidden' },
+  photo: { width: '100%', height: '100%', backgroundColor: colors.surfaceRaised },
+  photoDelete: { position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: radius.full, backgroundColor: 'rgba(15,23,42,0.6)', alignItems: 'center', justifyContent: 'center' },
 });
