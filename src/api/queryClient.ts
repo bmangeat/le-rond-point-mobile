@@ -16,6 +16,7 @@ export const qk = {
   groups: ['groups'] as const,
   group: (gid: string) => ['group', gid] as const,
   members: (gid: string) => ['members', gid] as const,
+  member: (gid: string, uid: string) => ['member', gid, uid] as const,
   presences: (gid: string) => ['presences', gid] as const,
   presenceToday: (gid: string) => ['presences', gid, 'today'] as const,
   events: (gid: string) => ['events', gid] as const,

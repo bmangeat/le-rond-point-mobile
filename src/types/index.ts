@@ -235,6 +235,24 @@ export interface Invitation {
   createdAt: string;
 }
 
+/** Public member profile — GET /groups/:groupId/members/:userId. */
+export interface MemberProfile {
+  id: string;
+  name: string;
+  image: string | null;
+  city: string | null;
+  birthday: string | null;
+  phone: string | null;
+  instagram: string | null;
+  snapchat: string | null;
+  tiktok: string | null;
+  linkedin: string | null;
+  role: GroupRole;
+  memberColor: number;
+  isResident: boolean;
+  upcomingPresences: Presence[];
+}
+
 /** A reported comment as returned by GET /admin/reports. */
 export interface ReportedComment {
   id: string;

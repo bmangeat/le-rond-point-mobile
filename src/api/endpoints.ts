@@ -37,6 +37,7 @@ import type {
   GroupMember,
   GroupRole,
   Invitation,
+  MemberProfile,
   Presence,
   ProfileMembership,
   PushSubscriptionInput,
@@ -75,6 +76,8 @@ export const groupsApi = {
   leave: (groupId: string) =>
     api.delete(`/groups/${groupId}/members/me`).then((r) => r.data),
   // No dedicated members route: the list is embedded in GET /groups/:id.
+  memberProfile: (groupId: string, userId: string) =>
+    api.get<MemberProfile>(`/groups/${groupId}/members/${userId}`).then((r) => r.data),
   members: async (groupId: string): Promise<GroupMember[]> => {
     const group = await api.get<GroupDetail>(`/groups/${groupId}`).then((r) => r.data);
     return group.memberships.map((m) => ({

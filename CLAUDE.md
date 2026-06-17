@@ -205,9 +205,11 @@ dans `../le-rond-point-api/src/` — les specs décrivent l'app Next.js d'origin
   (CRUD, **sélecteurs de date natifs**).
 - Sorties : liste, création (**date/heure native** + raccourcis ce soir/demain/week-end),
   détail (Qui vient + RSVP, Besoins claim/release, **Tricount complet** : ajout de dépense
-  + soldes « qui rend quoi » avec noms, Le fil/commentaires), édition/annulation/suppression.
+  + soldes « qui rend quoi » avec noms, Le fil/commentaires + **playlist** add/edit),
+  édition/annulation/suppression.
 - Membres : annuaire (recherche/filtres/tri, badges **« ici / bientôt là » calculés
-  client-side** depuis les présences) + profil public (de base).
+  client-side** depuis les présences) + **profil public complet** (réseaux cliquables +
+  prochaines présences) via `GET /groups/:id/members/:userId`.
 - Admin : renommer, inviter (email + **lien copiable**), invitations, **modération des
   commentaires signalés**, **fiche membre** (changement de rôle + retrait).
 - Onboarding per-group (3 étapes) + profil global (infos, réseaux, prefs notifs).
@@ -217,10 +219,8 @@ dans `../le-rond-point-api/src/` — les specs décrivent l'app Next.js d'origin
   un endpoint de souscription pour tokens natifs + envoi via Expo Push, puis `expo-notifications`
   (permission, token, handler de tap → deep-link).
 - **Sorties** : **sélecteur de lieu** (recherche/autocomplétion — actuellement champ texte
-  libre ; la date/heure est désormais un picker natif), playlist (champ URL dans le formulaire).
+  libre ; la date/heure est un picker natif).
 - **Photos de sortie** : bloqué côté API (routes absentes — voir §6).
-- **Profil membre public** : réseaux sociaux + prochaines présences (l'API ne renvoie pas
-  encore le détail public d'un membre).
 - **Polish** : police Inter (`expo-font`), splash/icônes, gestion fine du clavier
   (`KeyboardAvoidingView`), upload de photo de profil (bloqué API).
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -320,6 +320,8 @@ function Feed({ groupId, eventId }: { groupId: string; eventId: string }) {
   const { isAdmin } = useGroup();
   const { data: event } = useQuery({ queryKey: qk.event(groupId, eventId), queryFn: () => eventsApi.get(groupId, eventId) });
   const [text, setText] = useState('');
+  const [editingPlaylist, setEditingPlaylist] = useState(false);
+  const [playlistUrl, setPlaylistUrl] = useState('');
 
   const addComment = useMutation({
     mutationFn: () => eventsApi.addComment(groupId, eventId, text.trim()),
@@ -329,12 +331,36 @@ function Feed({ groupId, eventId }: { groupId: string; eventId: string }) {
     mutationFn: (commentId: string) => eventsApi.removeComment(groupId, eventId, commentId),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.event(groupId, eventId) }),
   });
+  // Any member can set/update the playlist (spec). Stored via PATCH event.
+  const savePlaylist = useMutation({
+    mutationFn: () => eventsApi.update(groupId, eventId, { hasPlaylist: !!playlistUrl.trim(), playlistUrl: playlistUrl.trim() || undefined }),
+    onSuccess: () => { setEditingPlaylist(false); void qc.invalidateQueries({ queryKey: qk.event(groupId, eventId) }); },
+  });
 
   if (!event) return <Loading />;
 
   return (
     <View style={{ gap: spacing.sm }}>
-      <Txt variant="h2">Le fil</Txt>
+      <Txt variant="h2">Playlist</Txt>
+      {event.hasPlaylist && event.playlistUrl && !editingPlaylist ? (
+        <Pressable onPress={() => Linking.openURL(event.playlistUrl!)}>
+          <Card><Txt style={{ color: colors.primary }}>🎵 Ouvrir la playlist</Txt></Card>
+        </Pressable>
+      ) : null}
+      {editingPlaylist ? (
+        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+          <TextInput style={styles.inlineInput} value={playlistUrl} onChangeText={setPlaylistUrl} placeholder="https://…" placeholderTextColor={colors.mutedForeground} autoCapitalize="none" keyboardType="url" />
+          <Button title="OK" loading={savePlaylist.isPending} onPress={() => savePlaylist.mutate()} />
+        </View>
+      ) : (
+        <Button
+          title={event.hasPlaylist ? 'Modifier la playlist' : '+ Ajouter une playlist'}
+          variant="ghost"
+          onPress={() => { setPlaylistUrl(event.playlistUrl ?? ''); setEditingPlaylist(true); }}
+        />
+      )}
+
+      <Txt variant="h2" style={{ marginTop: spacing.md }}>Le fil</Txt>
       {(event.comments ?? []).map((c) => (
         <Card key={c.id}>
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
@@ -354,7 +380,7 @@ function Feed({ groupId, eventId }: { groupId: string; eventId: string }) {
         <TextInput style={styles.inlineInput} value={text} onChangeText={setText} placeholder="Écrire un message…" placeholderTextColor={colors.mutedForeground} />
         <Button title="Envoyer" disabled={!text.trim()} loading={addComment.isPending} onPress={() => addComment.mutate()} />
       </View>
-      <Txt variant="muted" style={{ marginTop: spacing.sm }}>Playlist & photos : voir CLAUDE.md « Écarts API ».</Txt>
+      <Txt variant="muted" style={{ marginTop: spacing.sm }}>Photos : bloqué côté API (voir CLAUDE.md « Écarts API »).</Txt>
     </View>
   );
 }
