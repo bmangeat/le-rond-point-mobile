@@ -198,12 +198,16 @@ dans `../le-rond-point-api/src/` — les specs décrivent l'app Next.js d'origin
 - Hub `/groups` + création de groupe + **quitter un groupe** (appui long, garde dernier-admin
   côté serveur affichée).
 - Accueil : toggle présence du jour, calendrier mensuel (compteurs + pastilles event),
-  carousel sorties, tes présences, **redirection auto vers l'onboarding** si non complété.
-- Présences : liste, filtres membres, groupage par mois, anciennes, `PresenceForm` (CRUD).
-- Sorties : liste, création, détail (Qui vient + RSVP, Besoins claim/release,
-  **Tricount complet** : ajout de dépense + soldes « qui rend quoi » avec noms,
-  Le fil/commentaires), édition/annulation/suppression.
-- Membres : annuaire (recherche/filtres/tri) + profil public (de base).
+  **timeline « Qui est là ce mois-ci »** (barres par membre, résidents exclus, OPEN/BUSY),
+  **DayDetailSheet** au tap d'un jour (présences + sorties + CTA ajout), carousel sorties,
+  tes présences, **redirection auto vers l'onboarding** si non complété.
+- Présences : liste, filtres membres, groupage par mois, anciennes, `PresenceForm`
+  (CRUD, **sélecteurs de date natifs**).
+- Sorties : liste, création (**date/heure native** + raccourcis ce soir/demain/week-end),
+  détail (Qui vient + RSVP, Besoins claim/release, **Tricount complet** : ajout de dépense
+  + soldes « qui rend quoi » avec noms, Le fil/commentaires), édition/annulation/suppression.
+- Membres : annuaire (recherche/filtres/tri, badges **« ici / bientôt là » calculés
+  client-side** depuis les présences) + profil public (de base).
 - Admin : renommer, inviter (email + **lien copiable**), invitations, **modération des
   commentaires signalés**, **fiche membre** (changement de rôle + retrait).
 - Onboarding per-group (3 étapes) + profil global (infos, réseaux, prefs notifs).
@@ -212,13 +216,11 @@ dans `../le-rond-point-api/src/` — les specs décrivent l'app Next.js d'origin
 - **Notifications push** : ⚠️ bloqué côté API (Web Push only — voir §6). Nécessite d'abord
   un endpoint de souscription pour tokens natifs + envoi via Expo Push, puis `expo-notifications`
   (permission, token, handler de tap → deep-link).
-- **Sorties** : sélecteur de date/lieu **natif** (actuellement saisie texte ISO), playlist,
-  `DayDetailSheet` sur l'accueil (le tap calendrier ouvre directement `PresenceForm` pré-rempli).
-- **Timeline « Qui est là ce mois »** (barres par membre) sur l'accueil — non encore portée.
+- **Sorties** : **sélecteur de lieu** (recherche/autocomplétion — actuellement champ texte
+  libre ; la date/heure est désormais un picker natif), playlist (champ URL dans le formulaire).
 - **Photos de sortie** : bloqué côté API (routes absentes — voir §6).
 - **Profil membre public** : réseaux sociaux + prochaines présences (l'API ne renvoie pas
-  encore le détail public ; l'annuaire `hereNow`/`aroundSoon` n'est pas fourni non plus →
-  badges « ici / bientôt là » à calculer côté client depuis les présences).
+  encore le détail public d'un membre).
 - **Polish** : police Inter (`expo-font`), splash/icônes, gestion fine du clavier
   (`KeyboardAvoidingView`), upload de photo de profil (bloqué API).
 

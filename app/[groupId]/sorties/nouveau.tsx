@@ -8,6 +8,7 @@ import { qk } from '@/api/queryClient';
 import { apiErrorMessage } from '@/api/client';
 import { useGroup } from '@/hooks/useGroup';
 import { Button, Card, Txt } from '@/components/ui';
+import { DateField } from '@/components/DateField';
 import { colors, eventTypeStyle, radius, spacing } from '@/theme';
 import type { EventType } from '@/types';
 
@@ -20,7 +21,7 @@ export default function NewSortie() {
   const [type, setType] = useState<EventType | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [whenAt, setWhenAt] = useState(''); // ISO datetime, e.g. 2026-06-20T20:00
+  const [whenAt, setWhenAt] = useState<Date | null>(null);
   const [placeName, setPlaceName] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -34,7 +35,7 @@ export default function NewSortie() {
         type: type!,
         name: name.trim(),
         description: description || undefined,
-        whenAt: new Date(whenAt).toISOString(),
+        whenAt: whenAt!.toISOString(),
         placeName: placeName.trim(),
         needsEnabled,
         tricountEnabled,
@@ -49,12 +50,6 @@ export default function NewSortie() {
   });
 
   const valid = type && name.trim() && whenAt && placeName.trim();
-
-  function quick(date: Date) {
-    setWhenAt(
-      `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`,
-    );
-  }
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -101,10 +96,11 @@ export default function NewSortie() {
         <View>
           <Txt variant="label">Quand ?</Txt>
           <View style={{ flexDirection: 'row', gap: spacing.sm, marginVertical: spacing.sm }}>
-            <Button title="Ce soir" variant="secondary" style={{ flex: 1 }} onPress={() => { const d = new Date(); d.setHours(20, 0, 0, 0); quick(d); }} />
-            <Button title="Demain" variant="secondary" style={{ flex: 1 }} onPress={() => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(20, 0, 0, 0); quick(d); }} />
+            <Button title="Ce soir" variant="secondary" style={{ flex: 1 }} onPress={() => { const d = new Date(); d.setHours(20, 0, 0, 0); setWhenAt(d); }} />
+            <Button title="Demain" variant="secondary" style={{ flex: 1 }} onPress={() => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(20, 0, 0, 0); setWhenAt(d); }} />
+            <Button title="Ce week-end" variant="secondary" style={{ flex: 1 }} onPress={() => { const d = new Date(); d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7)); d.setHours(14, 0, 0, 0); setWhenAt(d); }} />
           </View>
-          <TextInput style={styles.input} value={whenAt} onChangeText={setWhenAt} placeholder="AAAA-MM-JJTHH:MM" placeholderTextColor={colors.mutedForeground} />
+          <DateField label="" value={whenAt} onChange={setWhenAt} mode="datetime" minimumDate={new Date()} />
         </View>
 
         <View>

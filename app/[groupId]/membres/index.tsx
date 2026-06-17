@@ -3,11 +3,13 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
-import { groupsApi } from '@/api/endpoints';
+import { groupsApi, presencesApi } from '@/api/endpoints';
 import { qk } from '@/api/queryClient';
 import { useGroup } from '@/hooks/useGroup';
 import { Avatar, Badge, Card, Chip, EmptyState, Loading, Txt } from '@/components/ui';
 import { colors, spacing } from '@/theme';
+import { coversDay } from '@/lib/dates';
+import type { GroupMember } from '@/types';
 
 type Sort = 'name' | 'city';
 
@@ -20,12 +22,32 @@ export default function Membres() {
   const [onlyHere, setOnlyHere] = useState(false);
   const [sort, setSort] = useState<Sort>('name');
 
-  const { data, isLoading } = useQuery({ queryKey: qk.members(groupId), queryFn: () => groupsApi.members(groupId) });
+  const membersQ = useQuery({ queryKey: qk.members(groupId), queryFn: () => groupsApi.members(groupId) });
+  const presencesQ = useQuery({ queryKey: qk.presences(groupId), queryFn: () => presencesApi.list(groupId) });
+  const isLoading = membersQ.isLoading;
+
+  // The API doesn't return hereNow/aroundSoon → derive them from presences.
+  const data = useMemo<GroupMember[]>(() => {
+    const todayMid = Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate());
+    const soonLimit = todayMid + 30 * 86_400_000;
+    const presences = presencesQ.data ?? [];
+    return (membersQ.data ?? []).map((m) => {
+      const mine = presences.filter((p) => p.userId === m.id);
+      return {
+        ...m,
+        hereNow: mine.some((p) => coversDay(p.startDate, p.endDate, todayMid)),
+        aroundSoon: mine.some((p) => {
+          const s = new Date(p.startDate).getTime();
+          return s > todayMid && s <= soonLimit;
+        }),
+      };
+    });
+  }, [membersQ.data, presencesQ.data]);
 
   const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
   const list = useMemo(() => {
-    let m = data ?? [];
+    let m = data;
     if (query) m = m.filter((x) => norm(x.name).includes(norm(query)) || norm(x.city ?? '').includes(norm(query)));
     if (onlyResidents) m = m.filter((x) => x.isResident);
     if (onlyHere) m = m.filter((x) => x.hereNow);

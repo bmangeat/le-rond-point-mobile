@@ -5,9 +5,16 @@ import { presencesApi, type PresenceInput } from '@/api/endpoints';
 import { qk } from '@/api/queryClient';
 import { apiErrorMessage } from '@/api/client';
 import { Button, Txt } from '@/components/ui';
+import { DateField } from '@/components/DateField';
 import { colors, radius, spacing } from '@/theme';
-import { todayInput } from '@/lib/dates';
+import { toDateInput } from '@/lib/dates';
 import type { Availability, Presence } from '@/types';
+
+/** Parse a YYYY-MM-DD(...) string as a local Date at midnight. */
+function parseDay(iso: string): Date {
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
 
 interface Props {
   groupId: string;
@@ -26,8 +33,8 @@ interface Props {
 export function PresenceForm({ groupId, presence, defaultDate, visible, onClose }: Props) {
   const qc = useQueryClient();
   const isEdit = !!presence;
-  const [start, setStart] = useState(presence ? presence.startDate.slice(0, 10) : defaultDate ?? todayInput());
-  const [end, setEnd] = useState(presence ? presence.endDate.slice(0, 10) : defaultDate ?? todayInput());
+  const [start, setStart] = useState<Date>(presence ? parseDay(presence.startDate) : defaultDate ? parseDay(defaultDate) : new Date());
+  const [end, setEnd] = useState<Date>(presence ? parseDay(presence.endDate) : defaultDate ? parseDay(defaultDate) : new Date());
   const [availability, setAvailability] = useState<Availability>(presence?.availability ?? 'OPEN');
   const [note, setNote] = useState(presence?.note ?? '');
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +46,7 @@ export function PresenceForm({ groupId, presence, defaultDate, visible, onClose 
 
   const save = useMutation({
     mutationFn: () => {
-      const input: PresenceInput = { startDate: start, endDate: end, availability, note: note || undefined };
+      const input: PresenceInput = { startDate: toDateInput(start), endDate: toDateInput(end), availability, note: note || undefined };
       return isEdit
         ? presencesApi.update(groupId, presence!.id, input)
         : presencesApi.create(groupId, input);
@@ -60,7 +67,7 @@ export function PresenceForm({ groupId, presence, defaultDate, visible, onClose 
     onError: (e) => setError(apiErrorMessage(e, 'Suppression impossible.')),
   });
 
-  const datesValid = new Date(end) >= new Date(start);
+  const datesValid = end >= start;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -68,11 +75,12 @@ export function PresenceForm({ groupId, presence, defaultDate, visible, onClose 
       <View style={styles.sheet}>
         <Txt variant="h1">{isEdit ? 'Modifier ma présence' : 'Nouvelle présence'}</Txt>
 
-        <Txt variant="label" style={styles.label}>Arrivée</Txt>
-        <TextInput style={styles.input} value={start} onChangeText={setStart} placeholder="AAAA-MM-JJ" placeholderTextColor={colors.mutedForeground} />
-
-        <Txt variant="label" style={styles.label}>Départ</Txt>
-        <TextInput style={styles.input} value={end} onChangeText={setEnd} placeholder="AAAA-MM-JJ" placeholderTextColor={colors.mutedForeground} />
+        <View style={styles.label}>
+          <DateField label="Arrivée" value={start} onChange={setStart} />
+        </View>
+        <View style={styles.label}>
+          <DateField label="Départ" value={end} onChange={setEnd} minimumDate={start} />
+        </View>
 
         <Txt variant="label" style={styles.label}>Disponibilité</Txt>
         <View style={{ flexDirection: 'row', gap: spacing.sm }}>

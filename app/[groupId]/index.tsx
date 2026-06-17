@@ -3,11 +3,13 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Redirect, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { eventsApi, presencesApi } from '@/api/endpoints';
+import { eventsApi, groupsApi, presencesApi } from '@/api/endpoints';
 import { qk } from '@/api/queryClient';
 import { useAuth } from '@/auth/AuthContext';
 import { useGroup } from '@/hooks/useGroup';
 import { MonthCalendar } from '@/components/MonthCalendar';
+import { MonthTimeline } from '@/components/MonthTimeline';
+import { DayDetailSheet } from '@/components/DayDetailSheet';
 import { PresenceForm } from '@/components/PresenceForm';
 import { Avatar, AvatarPile, Card, Loading, Txt } from '@/components/ui';
 import { AvailabilityBadge, EventGlyph, RsvpChip } from '@/components/domain';
@@ -23,10 +25,12 @@ export default function Home() {
   const [formPresence, setFormPresence] = useState<Presence | null>(null);
   const [formDate, setFormDate] = useState<string | undefined>();
   const [formOpen, setFormOpen] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
   const presences = useQuery({ queryKey: qk.presences(groupId), queryFn: () => presencesApi.list(groupId) });
   const events = useQuery({ queryKey: qk.events(groupId), queryFn: () => eventsApi.list(groupId) });
   const today = useQuery({ queryKey: qk.presenceToday(groupId), queryFn: () => presencesApi.today(groupId) });
+  const members = useQuery({ queryKey: qk.members(groupId), queryFn: () => groupsApi.members(groupId) });
 
   const toggleToday = useMutation({
     mutationFn: async () => {
@@ -92,9 +96,17 @@ export default function Home() {
             presences={presences.data ?? []}
             events={events.data ?? []}
             meId={user?.id}
-            onSelectDay={(date) => openForm(null, date)}
+            onSelectDay={(date) => setSelectedDay(date)}
           />
         </Card>
+
+        {/* Timeline — who's around this month */}
+        <View>
+          <Txt variant="h2" style={{ marginBottom: spacing.sm }}>Qui est là ce mois-ci</Txt>
+          <Card>
+            <MonthTimeline presences={presences.data ?? []} members={members.data ?? []} meId={user?.id} />
+          </Card>
+        </View>
 
         {/* Upcoming events carousel */}
         {upcomingEvents.length > 0 ? (
@@ -144,6 +156,17 @@ export default function Home() {
           </View>
         ) : null}
       </ScrollView>
+
+      <DayDetailSheet
+        day={selectedDay}
+        presences={presences.data ?? []}
+        events={events.data ?? []}
+        meId={user?.id}
+        onClose={() => setSelectedDay(null)}
+        onEditPresence={(p) => { setSelectedDay(null); openForm(p); }}
+        onAddPresence={(d) => { setSelectedDay(null); openForm(null, d); }}
+        onOpenEvent={(id) => { setSelectedDay(null); router.push(`/${groupId}/sorties/${id}`); }}
+      />
 
       <PresenceForm
         groupId={groupId}
