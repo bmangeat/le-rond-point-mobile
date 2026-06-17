@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Le Rond Point",
+    "slug": "le-rond-point",
+    "scheme": "lerondpoint",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#F8FAFF"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.lerondpoint.app"
+    },
+    "android": {
+      "package": "com.lerondpoint.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#F8FAFF"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "color": "#3B7BF8"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "apiBaseUrl": "http://localhost:3001/api",
+      "googleWebClientId": "REPLACE_WITH_GOOGLE_WEB_CLIENT_ID",
+      "googleIosClientId": "REPLACE_WITH_GOOGLE_IOS_CLIENT_ID",
+      "googleAndroidClientId": "REPLACE_WITH_GOOGLE_ANDROID_CLIENT_ID"
+    }
+  }
+}
