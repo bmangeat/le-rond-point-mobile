@@ -18,9 +18,7 @@ export default function Login() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.hero}>
-        <View style={styles.logo}>
-          <Image source={require('../assets/splash-icon.png')} style={{ width: 64, height: 64 }} resizeMode="contain" />
-        </View>
+        <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
         <Txt variant="title" style={{ marginTop: spacing.lg }}>Le Rond Point</Txt>
         <Txt variant="muted" style={{ textAlign: 'center', marginTop: spacing.sm }}>
           Le quartier d'enfance, où qu'on soit.
@@ -49,12 +47,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'space-between', padding: spacing.xl },
   hero: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   logo: {
-    width: 88,
-    height: 88,
+    width: 104,
+    height: 104,
     borderRadius: radius['2xl'],
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   bottom: { paddingBottom: spacing.lg },
 });

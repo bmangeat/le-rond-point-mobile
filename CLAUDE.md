@@ -234,10 +234,13 @@ dans `../le-rond-point-api/src/` — les specs décrivent l'app Next.js d'origin
   libre ; la date/heure est un picker natif).
 - **Photos** : « Télécharger tout » (zip) non implémenté ; suppression auto J+7 (cron) à faire
   côté API ; stockage à migrer vers du stockage objet pour la prod (voir §6).
-- **Polish restant** : **icône/splash** = placeholder « rond-point » généré (anneau blanc sur
-  bleu, dans `assets/`, créé par script PNG sans dépendance) — à remplacer par un visuel
-  définitif de designer si souhaité ; `KeyboardAvoidingView` reste à ajouter sur profil/admin
-  si recouvrements constatés ; upload photo de profil (bloqué API).
+- **Polish restant** : `KeyboardAvoidingView` à ajouter sur profil/admin si recouvrements
+  constatés ; upload photo de profil (bloqué API).
+
+> Icône/splash : visuel **définitif du designer** (`assets/icon.png`, `adaptive-icon.png`,
+> `splash-icon.png`, `favicon.png`, `logo.png`), généré depuis `Design/icons/` (variante
+> maskable full-bleed pour l'icône iOS/Android, variante arrondie pour splash + écran de login).
+> Pour mettre à jour : ré-exporter depuis `Design/icons/` et re-`sips -z 1024 1024`.
 
 ---
 
