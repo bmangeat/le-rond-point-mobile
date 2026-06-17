@@ -37,6 +37,7 @@
     },
     "extra": {
       "apiBaseUrl": "http://localhost:3001/api",
+      "inviteBaseUrl": "https://lerondpoint.app",
       "googleWebClientId": "REPLACE_WITH_GOOGLE_WEB_CLIENT_ID",
       "googleIosClientId": "REPLACE_WITH_GOOGLE_IOS_CLIENT_ID",
       "googleAndroidClientId": "REPLACE_WITH_GOOGLE_ANDROID_CLIENT_ID"

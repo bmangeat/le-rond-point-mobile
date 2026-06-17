@@ -151,11 +151,12 @@ export interface EventNeed {
 export interface EventExpense {
   id: string;
   eventId: string;
-  payerId: string;
-  payer?: Pick<GroupMember, 'id' | 'name'>;
+  payerId: string; // always the user who created it (API sets payerId = caller)
   label: string;
   amount: number;
-  participantIds: string[];
+  createdAt?: string;
+  // Returned by the API as join rows including the user.
+  participants?: { userId: string; user?: { id: string; name: string } }[];
 }
 
 export interface EventComment {
@@ -211,11 +212,17 @@ export interface Event {
   myRsvp?: RsvpStatus;
 }
 
-/** Simplified transfer list returned by GET .../events/:id/balances. */
-export interface BalanceTransfer {
-  fromUserId: string;
-  toUserId: string;
+/** One settlement transfer (minimized) — API field names are `from`/`to`. */
+export interface BalanceDebt {
+  from: string; // userId who owes
+  to: string; // userId who is owed
   amount: number;
+}
+
+/** Shape of GET /events/:id/balances → { expenses, debts }. */
+export interface BalancesResponse {
+  expenses: EventExpense[];
+  debts: BalanceDebt[];
 }
 
 export interface Invitation {
@@ -226,4 +233,21 @@ export interface Invitation {
   usedAt: string | null;
   groupId: string;
   createdAt: string;
+}
+
+/** A reported comment as returned by GET /admin/reports. */
+export interface ReportedComment {
+  id: string;
+  text: string;
+  createdAt: string;
+  author: { id: string; name: string };
+  event: { id: string; name: string };
+  reports: { id: string; reason: string | null; reporter: { id: string; name: string } }[];
+}
+
+/** Web Push subscription (the API stores browser subscriptions, not native tokens). */
+export interface PushSubscriptionInput {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
 }

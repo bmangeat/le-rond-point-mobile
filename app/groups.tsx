@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -13,7 +13,7 @@ import { colors, radius, spacing } from '@/theme';
 import type { Group } from '@/types';
 
 export default function Groups() {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const qc = useQueryClient();
   const setLastGroupId = useGroupStore((s) => s.setLastGroupId);
   const [creating, setCreating] = useState(false);
@@ -34,12 +34,28 @@ export default function Groups() {
     onError: (e) => setError(apiErrorMessage(e, 'Création impossible.')),
   });
 
+  const leaveMutation = useMutation({
+    mutationFn: (groupId: string) => groupsApi.leave(groupId),
+    onSuccess: async () => {
+      await refreshProfile();
+      void qc.invalidateQueries({ queryKey: qk.groups });
+    },
+    onError: (e) => Alert.alert('Impossible de quitter', apiErrorMessage(e)),
+  });
+
   function open(group: Group) {
     setLastGroupId(group.id);
     router.push(`/${group.id}`);
   }
+  function confirmLeave(group: Group) {
+    Alert.alert('Quitter le groupe', `Quitter ${group.name} ? Tes présences passées seront conservées.`, [
+      { text: 'Annuler', style: 'cancel' },
+      { text: 'Quitter', style: 'destructive', onPress: () => leaveMutation.mutate(group.id) },
+    ]);
+  }
 
   if (isLoading) return <Loading />;
+  const onlyGroup = (groups ?? []).length <= 1;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -65,7 +81,7 @@ export default function Groups() {
           />
         }
         renderItem={({ item }) => (
-          <Pressable onPress={() => open(item)}>
+          <Pressable onPress={() => open(item)} onLongPress={() => !onlyGroup && confirmLeave(item)}>
             <Card>
               <View style={styles.cardRow}>
                 <Txt variant="h2">{item.name}</Txt>
@@ -76,8 +92,13 @@ export default function Groups() {
                 )}
               </View>
               <Txt variant="muted" style={{ marginTop: spacing.xs }}>
-                {item.memberCount != null ? `${item.memberCount} membre(s)` : 'Toucher pour ouvrir'}
+                {item.memberCount} membre(s)
               </Txt>
+              {!onlyGroup ? (
+                <Txt variant="muted" style={{ marginTop: spacing.xs, fontSize: 11 }}>
+                  Appui long pour quitter
+                </Txt>
+              ) : null}
             </Card>
           </Pressable>
         )}

@@ -7,7 +7,7 @@ import { eventsApi } from '@/api/endpoints';
 import { qk } from '@/api/queryClient';
 import { useAuth } from '@/auth/AuthContext';
 import { useGroup } from '@/hooks/useGroup';
-import { Avatar, Badge, Button, Card, Loading, Txt } from '@/components/ui';
+import { Avatar, Badge, Button, Card, Chip, Loading, Txt } from '@/components/ui';
 import { EventGlyph } from '@/components/domain';
 import { colors, eventTypeStyle, radius, spacing } from '@/theme';
 import { formatEventDate } from '@/lib/dates';
@@ -168,6 +168,15 @@ function Logistics({ groupId, eventId }: { groupId: string; eventId: string }) {
     enabled: !!event?.tricountEnabled,
   });
   const [needLabel, setNeedLabel] = useState('');
+  const [showExpense, setShowExpense] = useState(false);
+  const [expLabel, setExpLabel] = useState('');
+  const [expAmount, setExpAmount] = useState('');
+  const [expParticipants, setExpParticipants] = useState<Set<string>>(new Set());
+
+  function invalidateTricount() {
+    void qc.invalidateQueries({ queryKey: qk.event(groupId, eventId) });
+    void qc.invalidateQueries({ queryKey: qk.balances(groupId, eventId) });
+  }
 
   const addNeed = useMutation({
     mutationFn: () => eventsApi.addNeed(groupId, eventId, needLabel.trim()),
@@ -178,8 +187,40 @@ function Logistics({ groupId, eventId }: { groupId: string; eventId: string }) {
       claimed ? eventsApi.releaseNeed(groupId, eventId, needId) : eventsApi.claimNeed(groupId, eventId, needId),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.event(groupId, eventId) }),
   });
+  const addExpense = useMutation({
+    mutationFn: () =>
+      eventsApi.addExpense(groupId, eventId, {
+        label: expLabel.trim(),
+        amount: Number(expAmount.replace(',', '.')),
+        participantIds: [...expParticipants],
+      }),
+    onSuccess: () => {
+      setShowExpense(false);
+      setExpLabel('');
+      setExpAmount('');
+      invalidateTricount();
+    },
+  });
 
   if (!event) return <Loading />;
+
+  // id → prénom, built from the RSVP list (which carries user{id,name}).
+  const names = new Map<string, string>();
+  (event.rsvps ?? []).forEach((r) => r.user && names.set(r.userId, r.user.name.split(' ')[0]));
+  const nameOf = (id: string) => (id === user?.id ? 'Toi' : names.get(id) ?? 'Membre');
+  const allMemberIds = (event.rsvps ?? []).map((r) => r.userId);
+
+  function toggleParticipant(id: string) {
+    setExpParticipants((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+  function openExpenseForm() {
+    setExpParticipants(new Set(allMemberIds)); // tous cochés par défaut (spec)
+    setShowExpense(true);
+  }
 
   return (
     <View style={{ gap: spacing.md }}>
@@ -213,26 +254,59 @@ function Logistics({ groupId, eventId }: { groupId: string; eventId: string }) {
       {event.tricountEnabled ? (
         <View style={{ gap: spacing.sm }}>
           <Txt variant="h2">Dépenses</Txt>
-          {balances.data && balances.data.length > 0 ? (
-            <Card>
+
+          {balances.data && balances.data.debts.length > 0 ? (
+            <Card style={{ backgroundColor: colors.surfaceRaised }}>
               <Txt variant="label" style={{ marginBottom: spacing.sm }}>QUI REND QUOI</Txt>
-              {balances.data.map((t, i) => (
-                <Txt key={i} style={{ marginVertical: 2 }}>↳ {t.fromUserId} doit {t.amount.toFixed(2)}€ à {t.toUserId}</Txt>
+              {balances.data.debts.map((t, i) => (
+                <Txt key={i} style={{ marginVertical: 2 }}>
+                  ↳ <Txt style={{ color: colors.destructive }}>{nameOf(t.from)}</Txt> doit{' '}
+                  {t.amount.toFixed(2)}€ à <Txt style={{ color: colors.available }}>{nameOf(t.to)}</Txt>
+                </Txt>
               ))}
             </Card>
-          ) : (
+          ) : null}
+
+          {(balances.data?.expenses ?? event.expenses ?? []).length === 0 ? (
             <Txt variant="muted">Aucune dépense pour l'instant.</Txt>
-          )}
-          {(event.expenses ?? []).map((e) => (
+          ) : null}
+          {(balances.data?.expenses ?? event.expenses ?? []).map((e) => (
             <Card key={e.id}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                 <Txt>{e.label}</Txt>
                 <Txt style={{ fontWeight: '600' }}>{e.amount.toFixed(2)}€</Txt>
               </View>
-              <Txt variant="muted">Payé par {e.payer?.name ?? 'Membre'}</Txt>
+              <Txt variant="muted">
+                Payé par {nameOf(e.payerId)} · {(e.participants ?? []).length || allMemberIds.length} participant(s)
+              </Txt>
             </Card>
           ))}
-          <Txt variant="muted">Ajout d'une dépense : formulaire à finaliser (voir CLAUDE.md « Reste à faire »).</Txt>
+
+          {showExpense ? (
+            <Card style={{ gap: spacing.sm }}>
+              <Txt variant="label">Nouvelle dépense (payée par toi)</Txt>
+              <TextInput style={styles.inlineInput} value={expLabel} onChangeText={setExpLabel} placeholder="Libellé (ex. Tournée)" placeholderTextColor={colors.mutedForeground} />
+              <TextInput style={styles.inlineInput} value={expAmount} onChangeText={setExpAmount} placeholder="Montant €" placeholderTextColor={colors.mutedForeground} keyboardType="decimal-pad" />
+              <Txt variant="label">Partagé entre</Txt>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+                {allMemberIds.map((id) => (
+                  <Chip key={id} label={nameOf(id)} active={expParticipants.has(id)} onPress={() => toggleParticipant(id)} />
+                ))}
+              </View>
+              <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                <Button title="Annuler" variant="ghost" style={{ flex: 1 }} onPress={() => setShowExpense(false)} />
+                <Button
+                  title="Ajouter"
+                  style={{ flex: 1 }}
+                  loading={addExpense.isPending}
+                  disabled={!expLabel.trim() || !(Number(expAmount.replace(',', '.')) > 0) || expParticipants.size === 0}
+                  onPress={() => addExpense.mutate()}
+                />
+              </View>
+            </Card>
+          ) : (
+            <Button title="+ Ajouter une dépense" variant="secondary" onPress={openExpenseForm} />
+          )}
         </View>
       ) : null}
     </View>

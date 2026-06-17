@@ -176,6 +176,15 @@ Points confirmés :
   présent (pas `null`). `presencesApi.today()` normalise `'' → null`.
 - **`PATCH /groups/:id/members/me`** n'accepte que `isResident` (`onboardedAt` est géré
   côté serveur, pas exposé au client).
+- **Push = Web Push uniquement** : `POST /push/subscribe` attend `{ endpoint, p256dh, auth }`
+  (souscription navigateur). L'API ne gère **pas** les tokens push natifs (Expo/FCM/APNs).
+  ⇒ Les notifications push natives mobiles sont **bloquées côté API** : il faudra un nouveau
+  type de souscription + un envoi via le service push Expo avant de brancher `expo-notifications`.
+  `pushApi` est typé sur la forme Web Push réelle en attendant.
+- **`POST /events/:id/expenses`** force `payerId = utilisateur courant` : pas de sélecteur de
+  payeur (le formulaire indique « payée par toi »).
+- **Quitter / dernier admin** : `DELETE /groups/:id/members/me` renvoie `409` si tu es le
+  dernier admin (« Nomme un autre admin avant de quitter »). Le client affiche ce message.
 
 Avant de coder un écran qui dépend d'un point sensible, **lire le contrôleur/service NestJS**
 dans `../le-rond-point-api/src/` — les specs décrivent l'app Next.js d'origine, pas l'API réelle.
@@ -184,31 +193,34 @@ dans `../le-rond-point-api/src/` — les specs décrivent l'app Next.js d'origin
 
 ## 7. Périmètre actuel vs reste à faire
 
-**Fait (fondations + écrans clés, fonctionnels contre l'API) :**
+**Fait (fondations + écrans, fonctionnels & vérifiés contre l'API en marche) :**
 - Auth Google → JWT, refresh auto, SecureStore, redirecteur d'entrée.
-- Hub `/groups` + création de groupe.
+- Hub `/groups` + création de groupe + **quitter un groupe** (appui long, garde dernier-admin
+  côté serveur affichée).
 - Accueil : toggle présence du jour, calendrier mensuel (compteurs + pastilles event),
-  carousel sorties, tes présences.
+  carousel sorties, tes présences, **redirection auto vers l'onboarding** si non complété.
 - Présences : liste, filtres membres, groupage par mois, anciennes, `PresenceForm` (CRUD).
-- Sorties : liste, création, détail (Qui vient + RSVP, Besoins claim/release, Tricount
-  lecture, Le fil/commentaires), édition/annulation/suppression.
+- Sorties : liste, création, détail (Qui vient + RSVP, Besoins claim/release,
+  **Tricount complet** : ajout de dépense + soldes « qui rend quoi » avec noms,
+  Le fil/commentaires), édition/annulation/suppression.
 - Membres : annuaire (recherche/filtres/tri) + profil public (de base).
-- Admin : renommer, inviter (email + lien), invitations en attente, liste membres.
+- Admin : renommer, inviter (email + **lien copiable**), invitations, **modération des
+  commentaires signalés**, **fiche membre** (changement de rôle + retrait).
 - Onboarding per-group (3 étapes) + profil global (infos, réseaux, prefs notifs).
 
-**Reste à faire (signalé dans l'UI par des notes « voir CLAUDE.md ») :**
-- **Notifications push** : `expo-notifications` (permission, token, `POST /push/subscribe`),
-  handler de tap → deep-link vers la bonne route. `pushApi` existe déjà côté client.
-- **Tricount** : formulaire d'ajout de dépense (payeur, montant, participants) +
-  affichage soldes avec **noms** (les transferts renvoient des `userId` bruts → mapper).
-- **Admin** : fiche membre (bottom sheet) — changement de rôle + retrait, modération
-  des commentaires signalés (`adminApi.reports` / `resolveReport`).
-- **Sorties** : sélecteur de date/lieu natif (actuellement saisie texte ISO), playlist,
-  copie de lien d'invitation (clipboard), `DayDetailSheet` sur l'accueil.
+**Reste à faire :**
+- **Notifications push** : ⚠️ bloqué côté API (Web Push only — voir §6). Nécessite d'abord
+  un endpoint de souscription pour tokens natifs + envoi via Expo Push, puis `expo-notifications`
+  (permission, token, handler de tap → deep-link).
+- **Sorties** : sélecteur de date/lieu **natif** (actuellement saisie texte ISO), playlist,
+  `DayDetailSheet` sur l'accueil (le tap calendrier ouvre directement `PresenceForm` pré-rempli).
 - **Timeline « Qui est là ce mois »** (barres par membre) sur l'accueil — non encore portée.
-- **Quitter un groupe** (`groupsApi.leave`) + switcher détaillé.
-- **Polish** : police Inter (`expo-font`), splash/icônes, redirection auto vers
-  l'onboarding quand `membership.onboardedAt === null`, gestion fine du clavier.
+- **Photos de sortie** : bloqué côté API (routes absentes — voir §6).
+- **Profil membre public** : réseaux sociaux + prochaines présences (l'API ne renvoie pas
+  encore le détail public ; l'annuaire `hereNow`/`aroundSoon` n'est pas fourni non plus →
+  badges « ici / bientôt là » à calculer côté client depuis les présences).
+- **Polish** : police Inter (`expo-font`), splash/icônes, gestion fine du clavier
+  (`KeyboardAvoidingView`), upload de photo de profil (bloqué API).
 
 ---
 

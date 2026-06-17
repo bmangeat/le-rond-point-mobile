@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { eventsApi, presencesApi } from '@/api/endpoints';
@@ -16,7 +16,7 @@ import { formatDateRange, formatEventDate, todayInput } from '@/lib/dates';
 import type { Presence } from '@/types';
 
 export default function Home() {
-  const { groupId, group } = useGroup();
+  const { groupId, group, membership } = useGroup();
   const { user } = useAuth();
   const qc = useQueryClient();
 
@@ -49,6 +49,11 @@ export default function Home() {
     setFormPresence(presence);
     setFormDate(date);
     setFormOpen(true);
+  }
+
+  // Entering a group whose onboarding isn't done → per-group onboarding (spec 10).
+  if (membership && !membership.onboardedAt) {
+    return <Redirect href={`/${groupId}/onboarding`} />;
   }
 
   if (presences.isLoading || today.isLoading) return <Loading />;

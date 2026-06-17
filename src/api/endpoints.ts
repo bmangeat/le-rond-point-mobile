@@ -26,7 +26,7 @@
 import { api } from './client';
 import type {
   AuthTokens,
-  BalanceTransfer,
+  BalancesResponse,
   Event,
   EventComment,
   EventExpense,
@@ -39,6 +39,8 @@ import type {
   Invitation,
   Presence,
   ProfileMembership,
+  PushSubscriptionInput,
+  ReportedComment,
   RsvpStatus,
   User,
 } from '@/types';
@@ -144,7 +146,7 @@ export const eventsApi = {
   setRsvp: (groupId: string, id: string, status: RsvpStatus) =>
     api.patch(`/groups/${groupId}/events/${id}/rsvp`, { status }).then((r) => r.data),
   balances: (groupId: string, id: string) =>
-    api.get<BalanceTransfer[]>(`/groups/${groupId}/events/${id}/balances`).then((r) => r.data),
+    api.get<BalancesResponse>(`/groups/${groupId}/events/${id}/balances`).then((r) => r.data),
   addNeed: (groupId: string, id: string, label: string) =>
     api.post<EventNeed>(`/groups/${groupId}/events/${id}/needs`, { label }).then((r) => r.data),
   claimNeed: (groupId: string, id: string, needId: string) =>
@@ -174,14 +176,16 @@ export const adminApi = {
   deleteInvitation: (groupId: string, id: string) =>
     api.delete(`/groups/${groupId}/admin/invitations/${id}`).then((r) => r.data),
   reports: (groupId: string) =>
-    api.get(`/groups/${groupId}/admin/reports`).then((r) => r.data),
+    api.get<ReportedComment[]>(`/groups/${groupId}/admin/reports`).then((r) => r.data),
   resolveReport: (groupId: string, commentId: string, op: 'delete' | 'dismiss') =>
     api.post(`/groups/${groupId}/admin/reports`, { commentId, op }).then((r) => r.data),
 };
 
-// --- Push ---
+// --- Push (Web Push only) ---
+// NOTE: the API stores browser Web Push subscriptions ({ endpoint, p256dh, auth }).
+// Native mobile push (Expo/FCM/APNs) is NOT supported server-side yet — see CLAUDE.md.
 export const pushApi = {
-  subscribe: (token: string) => api.post('/push/subscribe', { token }).then((r) => r.data),
-  unsubscribe: (token: string) =>
-    api.delete('/push/subscribe', { data: { token } }).then((r) => r.data),
+  subscribe: (sub: PushSubscriptionInput) => api.post('/push/subscribe', sub).then((r) => r.data),
+  unsubscribe: (endpoint: string) =>
+    api.delete('/push/subscribe', { data: { endpoint } }).then((r) => r.data),
 };
