@@ -241,6 +241,12 @@ dans `../le-rond-point-api/src/` — les specs décrivent l'app Next.js d'origin
 > `splash-icon.png`, `favicon.png`, `logo.png`), généré depuis `Design/icons/` (variante
 > maskable full-bleed pour l'icône iOS/Android, variante arrondie pour splash + écran de login).
 > Pour mettre à jour : ré-exporter depuis `Design/icons/` et re-`sips -z 1024 1024`.
+>
+> **Splash animé** : le splash natif (statique, PNG) ne peut pas être animé ; on enchaîne donc
+> sur un overlay React animé — [AnimatedSplash](src/components/AnimatedSplash.tsx) — affiché
+> au-dessus du même fond (`#F8FAFF`) une fois le JS prêt. Le logo est recréé en `react-native-svg`
+> et animé en Reanimated (anneau pointillé qui tourne + pastilles qui apparaissent en séquence),
+> puis fondu sortant → `onFinish`. Monté dans `app/_layout.tsx` tant que `!splashDone`.
 
 ---
 

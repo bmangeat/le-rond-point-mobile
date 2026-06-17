@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -13,6 +13,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/api/queryClient';
 import { AuthProvider } from '@/auth/AuthContext';
+import { AnimatedSplash } from '@/components/AnimatedSplash';
 import { useGroupStore } from '@/stores/groupStore';
 import { colors } from '@/theme';
 
@@ -21,6 +22,7 @@ void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const hydrate = useGroupStore((s) => s.hydrate);
+  const [splashDone, setSplashDone] = useState(false);
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -58,6 +60,7 @@ export default function RootLayout() {
             </Stack>
           </AuthProvider>
         </QueryClientProvider>
+        {!splashDone ? <AnimatedSplash onFinish={() => setSplashDone(true)} /> : null}
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
