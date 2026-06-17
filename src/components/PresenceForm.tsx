@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { presencesApi, type PresenceInput } from '@/api/endpoints';
 import { qk } from '@/api/queryClient';
@@ -71,8 +71,9 @@ export function PresenceForm({ groupId, presence, defaultDate, visible, onClose 
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={styles.sheet}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <Pressable style={styles.backdrop} onPress={onClose} />
+        <View style={styles.sheet}>
         <Txt variant="h1">{isEdit ? 'Modifier ma présence' : 'Nouvelle présence'}</Txt>
 
         <View style={styles.label}>
@@ -116,7 +117,8 @@ export function PresenceForm({ groupId, presence, defaultDate, visible, onClose 
           ) : null}
           <Button title="Annuler" variant="ghost" onPress={onClose} />
         </View>
-      </View>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

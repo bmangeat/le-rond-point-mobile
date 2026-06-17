@@ -1,6 +1,6 @@
 import { Tabs, router, useLocalSearchParams } from 'expo-router';
 import { Text } from 'react-native';
-import { colors, fontWeight } from '@/theme';
+import { colors, fontFamily } from '@/theme';
 
 /**
  * Bottom tab bar within a group context (spec 00-overview.md → Navigation).
@@ -20,8 +20,8 @@ export default function GroupLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.mutedForeground,
-        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
-        tabBarLabelStyle: { fontWeight: fontWeight.medium },
+        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border, paddingTop: 4, height: 60 },
+        tabBarLabelStyle: { fontFamily: fontFamily.medium, fontSize: 11 },
       }}
     >
       <Tabs.Screen

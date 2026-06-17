@@ -131,8 +131,13 @@ Frais, moderne, friendly. Card-based, coins arrondis, feel natif. Fond `#F8FAFF`
 - `eventTypeStyle` : emoji + accent + tint par type — `BAR 🍻`, `RESTO 🍕`, `SOIREE 🏡`, `SORTIE 🏕️`.
 - `radius`, `spacing`, `fontSize`, `fontWeight`.
 
-Toujours consommer ces tokens (pas de hex en dur dans les écrans). Police cible : Inter
-(non encore chargée — voir « Reste à faire »).
+Toujours consommer ces tokens (pas de hex en dur dans les écrans).
+
+**Police : Inter**, chargée au démarrage dans `app/_layout.tsx` (`@expo-google-fonts/inter`,
+imports par sous-chemin pour ne bundler que 4 graisses) ; le splash reste affiché tant que les
+polices ne sont pas prêtes. Les composants appliquent `fontFamily` (`theme.fontFamily.*`) plutôt
+que `fontWeight` — la graisse est encodée dans le fichier de police. Préférer `Txt`/`Button`
+(déjà en Inter) à un `Text` brut.
 
 ---
 
@@ -221,8 +226,10 @@ dans `../le-rond-point-api/src/` — les specs décrivent l'app Next.js d'origin
 - **Sorties** : **sélecteur de lieu** (recherche/autocomplétion — actuellement champ texte
   libre ; la date/heure est un picker natif).
 - **Photos de sortie** : bloqué côté API (routes absentes — voir §6).
-- **Polish** : police Inter (`expo-font`), splash/icônes, gestion fine du clavier
-  (`KeyboardAvoidingView`), upload de photo de profil (bloqué API).
+- **Polish restant** : **icône d'app + splash art** (actuellement couleur de fond seule, pas
+  d'illustration — nécessite des PNG fournis par un designer), `KeyboardAvoidingView` sur les
+  écrans à scroll (fait sur `PresenceForm` ; reste profil/admin si besoin), upload photo de
+  profil (bloqué API).
 
 ---
 

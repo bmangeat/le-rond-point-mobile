@@ -10,7 +10,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
-import { colors, fontSize, fontWeight, radius, spacing } from '@/theme';
+import { colors, fontFamily, fontSize, radius, spacing } from '@/theme';
 
 // --- Text ---
 type TxtProps = {
@@ -27,12 +27,12 @@ export function Txt({ children, variant = 'body', style, numberOfLines }: TxtPro
   );
 }
 const txtStyles = StyleSheet.create({
-  title: { fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, color: colors.foreground },
-  h1: { fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: colors.foreground },
-  h2: { fontSize: fontSize.lg, fontWeight: fontWeight.semibold, color: colors.foreground },
-  body: { fontSize: fontSize.md, color: colors.foreground },
-  muted: { fontSize: fontSize.sm, color: colors.mutedForeground },
-  label: { fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: colors.mutedForeground },
+  title: { fontSize: fontSize['2xl'], fontFamily: fontFamily.bold, color: colors.foreground },
+  h1: { fontSize: fontSize.xl, fontFamily: fontFamily.bold, color: colors.foreground },
+  h2: { fontSize: fontSize.lg, fontFamily: fontFamily.semibold, color: colors.foreground },
+  body: { fontSize: fontSize.md, fontFamily: fontFamily.regular, color: colors.foreground },
+  muted: { fontSize: fontSize.sm, fontFamily: fontFamily.regular, color: colors.mutedForeground },
+  label: { fontSize: fontSize.xs, fontFamily: fontFamily.semibold, color: colors.mutedForeground, letterSpacing: 0.3 },
 });
 
 // --- Card ---
@@ -46,6 +46,12 @@ const cardStyles = StyleSheet.create({
     padding: spacing.lg,
     borderWidth: 1,
     borderColor: colors.border,
+    // Soft elevation for a more native, lifted feel.
+    shadowColor: '#1E293B',
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
 });
 
@@ -91,7 +97,7 @@ const btnStyles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
   },
-  text: { fontSize: fontSize.md, fontWeight: fontWeight.semibold },
+  text: { fontSize: fontSize.md, fontFamily: fontFamily.semibold },
 });
 
 // --- Badge / Chip ---
@@ -124,11 +130,11 @@ export function Chip({
 }
 const chipStyles = StyleSheet.create({
   badge: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.full, alignSelf: 'flex-start' },
-  badgeText: { fontSize: fontSize.xs, fontWeight: fontWeight.semibold },
+  badgeText: { fontSize: fontSize.xs, fontFamily: fontFamily.semibold },
   chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.full, marginRight: spacing.sm },
   chipActive: { backgroundColor: colors.primary },
   chipIdle: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-  chipText: { fontSize: fontSize.sm, fontWeight: fontWeight.medium },
+  chipText: { fontSize: fontSize.sm, fontFamily: fontFamily.medium },
 });
 
 // --- Avatar / AvatarPile ---
@@ -151,7 +157,7 @@ export function Avatar({ uri, name, size = 40, ring }: { uri?: string | null; na
       {uri ? (
         <Image source={{ uri }} style={{ width: size, height: size }} />
       ) : (
-        <Text style={{ color: colors.mutedForeground, fontWeight: fontWeight.semibold, fontSize: size * 0.4 }}>
+        <Text style={{ color: colors.mutedForeground, fontFamily: fontFamily.semibold, fontSize: size * 0.4 }}>
           {initials}
         </Text>
       )}
@@ -248,5 +254,5 @@ const fabStyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
-  plus: { color: colors.white, fontSize: 30, lineHeight: 32, fontWeight: fontWeight.regular },
+  plus: { color: colors.white, fontSize: 30, lineHeight: 32, fontFamily: fontFamily.regular },
 });

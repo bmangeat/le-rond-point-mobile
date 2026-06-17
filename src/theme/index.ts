@@ -81,3 +81,15 @@ export const fontWeight = {
   semibold: '600',
   bold: '700',
 } as const;
+
+/**
+ * Inter font families (loaded in app/_layout.tsx via @expo-google-fonts/inter).
+ * With per-weight font files the weight is baked into the family, so components
+ * set `fontFamily` instead of `fontWeight`.
+ */
+export const fontFamily = {
+  regular: 'Inter_400Regular',
+  medium: 'Inter_500Medium',
+  semibold: 'Inter_600SemiBold',
+  bold: 'Inter_700Bold',
+} as const;
