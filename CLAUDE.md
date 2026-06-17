@@ -41,7 +41,9 @@ par l'IP LAN (`http://192.168.x.x:3001/api`).
 - **Expo SDK 52** (managed) + **expo-router v4** (routing par fichiers, `app/`).
 - **TypeScript strict**, alias `@/*` → `src/*`.
 - **@tanstack/react-query** (cache serveur, clés centralisées dans `src/api/queryClient.ts`).
-- **axios** (instance unique + refresh JWT auto) — `src/api/client.ts`.
+- **Client HTTP maison sur `fetch`** (zéro dépendance — pas d'axios, pour réduire le bundle et
+  la surface CVE) : Bearer auto + refresh JWT single-flight + `ApiError` normalisée. Surface
+  axios-like (`api.get(...).then(r => r.data)`) — `src/api/client.ts`.
 - **zustand** pour le peu d'état global client (`lastGroupId`) — `src/stores/`.
 - **expo-secure-store** (tokens JWT), **expo-auth-session** (Google), **expo-notifications** (push, à brancher).
 
@@ -110,7 +112,7 @@ app/
 ### Structure `src/`
 ```
 src/
-  api/        client (axios+refresh), endpoints (wrappers typés), tokenStore, queryClient (+ clés qk)
+  api/        client (fetch + refresh, zéro dép), endpoints (wrappers typés), tokenStore, queryClient (+ clés qk)
   auth/       AuthContext, useGoogleSignIn
   components/ ui.tsx (primitives), domain.tsx (EventGlyph, RsvpChip, AvailabilityBadge),
               PresenceForm, MonthCalendar

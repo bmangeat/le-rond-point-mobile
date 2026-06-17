@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { authApi, profileApi } from '@/api/endpoints';
-import { api, setUnauthorizedHandler } from '@/api/client';
+import { setUnauthorizedHandler } from '@/api/client';
 import { tokenStore } from '@/api/tokenStore';
 import { useGroupStore } from '@/stores/groupStore';
 import type { ProfileMembership, User } from '@/types';
@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (idToken: string) => {
       const tokens = await authApi.google(idToken);
       await tokenStore.set(tokens);
-      api.defaults.headers.common.Authorization = `Bearer ${tokens.accessToken}`;
+      // The client reads the token from tokenStore on each request — nothing else to set.
       await loadProfile();
     },
     [loadProfile],

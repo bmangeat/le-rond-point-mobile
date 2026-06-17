@@ -1,18 +1,27 @@
-import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { config } from '@/config';
 import { tokenStore } from './tokenStore';
 import type { AuthTokens } from '@/types';
 
 /**
- * Single axios instance for the whole app.
- * - Attaches the access token on every request.
- * - On 401, transparently refreshes via POST /auth/refresh and replays once.
- * - On refresh failure, clears tokens and notifies listeners (→ logout).
+ * Zero-dependency HTTP client built on the platform `fetch` (RN/Hermes).
+ * Chosen over axios to drop a recurring-CVE dependency and shrink the bundle.
+ * Keeps an axios-like surface (`api.get(...).then(r => r.data)`) plus:
+ * - attaches the access token on every request,
+ * - on 401, refreshes via /auth/refresh (single-flight) and replays once,
+ * - on refresh failure, clears tokens and notifies listeners (→ logout).
  */
-export const api = axios.create({
-  baseURL: config.apiBaseUrl,
-  timeout: 15000,
-});
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly data: unknown = null,
+    readonly code?: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
 
 let onUnauthorized: (() => void) | null = null;
 /** Registered by AuthProvider to force a logout when the session is dead. */
@@ -20,24 +29,92 @@ export function setUnauthorizedHandler(fn: () => void) {
   onUnauthorized = fn;
 }
 
-api.interceptors.request.use(async (cfg: InternalAxiosRequestConfig) => {
-  const tokens = await tokenStore.get();
-  if (tokens?.accessToken) {
-    cfg.headers.set('Authorization', `Bearer ${tokens.accessToken}`);
-  }
-  return cfg;
-});
+interface RequestOptions {
+  method?: string;
+  /** Object → JSON; FormData → sent as-is (boundary set by the runtime). */
+  body?: unknown;
+  headers?: Record<string, string>;
+  /** Internal: skip auth header + refresh handling (used by /auth/refresh). */
+  skipAuth?: boolean;
+  /** Internal: marks the single replay after a successful refresh. */
+  retried?: boolean;
+}
 
-// --- 401 refresh handling (single-flight) ---
+function parseBody(text: string): unknown {
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+async function request<T>(path: string, opts: RequestOptions = {}): Promise<{ data: T }> {
+  const headers: Record<string, string> = { ...opts.headers };
+  const isForm = typeof FormData !== 'undefined' && opts.body instanceof FormData;
+
+  let body: BodyInit | undefined;
+  if (opts.body != null) {
+    if (isForm) {
+      body = opts.body as FormData; // let fetch set multipart boundary
+      delete headers['Content-Type'];
+    } else {
+      headers['Content-Type'] = headers['Content-Type'] ?? 'application/json';
+      body = JSON.stringify(opts.body);
+    }
+  }
+
+  if (!opts.skipAuth) {
+    const tokens = await tokenStore.get();
+    if (tokens?.accessToken) headers.Authorization = `Bearer ${tokens.accessToken}`;
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(config.apiBaseUrl + path, { method: opts.method ?? 'GET', headers, body });
+  } catch {
+    throw new ApiError('Impossible de joindre le serveur.', 0, null, 'ERR_NETWORK');
+  }
+
+  // Transparent refresh on 401 (once), except on auth routes.
+  if (res.status === 401 && !opts.retried && !opts.skipAuth && !path.includes('/auth/')) {
+    const fresh = await refreshTokens();
+    if (fresh) return request<T>(path, { ...opts, retried: true });
+    onUnauthorized?.();
+  }
+
+  const data = parseBody(await res.text());
+  if (!res.ok) {
+    const msg = (data as { message?: string | string[] })?.message;
+    throw new ApiError(
+      (Array.isArray(msg) ? msg[0] : msg) ?? `Erreur ${res.status}`,
+      res.status,
+      data,
+    );
+  }
+  return { data: data as T };
+}
+
+// --- Single-flight refresh ---
 let refreshing: Promise<AuthTokens | null> | null = null;
 
-async function refreshTokens(): Promise<AuthTokens | null> {
+function refreshTokens(): Promise<AuthTokens | null> {
+  if (!refreshing) {
+    refreshing = doRefresh().finally(() => {
+      refreshing = null;
+    });
+  }
+  return refreshing;
+}
+
+async function doRefresh(): Promise<AuthTokens | null> {
   const tokens = await tokenStore.get();
   if (!tokens?.refreshToken) return null;
   try {
-    // Bare axios call to avoid the interceptor loop.
-    const { data } = await axios.post<AuthTokens>(`${config.apiBaseUrl}/auth/refresh`, {
-      refreshToken: tokens.refreshToken,
+    const { data } = await request<AuthTokens>('/auth/refresh', {
+      method: 'POST',
+      body: { refreshToken: tokens.refreshToken },
+      skipAuth: true,
     });
     await tokenStore.set(data);
     return data;
@@ -47,36 +124,22 @@ async function refreshTokens(): Promise<AuthTokens | null> {
   }
 }
 
-api.interceptors.response.use(
-  (res) => res,
-  async (error: AxiosError) => {
-    const original = error.config as (InternalAxiosRequestConfig & { _retried?: boolean }) | undefined;
-    const isAuthRoute = original?.url?.includes('/auth/');
+export const api = {
+  get: <T>(path: string, opts?: RequestOptions) => request<T>(path, { ...opts, method: 'GET' }),
+  post: <T>(path: string, body?: unknown, opts?: RequestOptions) =>
+    request<T>(path, { ...opts, method: 'POST', body }),
+  patch: <T>(path: string, body?: unknown, opts?: RequestOptions) =>
+    request<T>(path, { ...opts, method: 'PATCH', body }),
+  // Supports an axios-style `{ data }` body for DELETE (e.g. push unsubscribe).
+  delete: <T>(path: string, opts?: RequestOptions & { data?: unknown }) =>
+    request<T>(path, { ...opts, method: 'DELETE', body: opts?.data ?? opts?.body }),
+};
 
-    if (error.response?.status === 401 && original && !original._retried && !isAuthRoute) {
-      original._retried = true;
-      refreshing = refreshing ?? refreshTokens();
-      const fresh = await refreshing;
-      refreshing = null;
-
-      if (fresh) {
-        original.headers.set('Authorization', `Bearer ${fresh.accessToken}`);
-        return api(original);
-      }
-      onUnauthorized?.();
-    }
-    return Promise.reject(error);
-  },
-);
-
-/** Normalizes an axios error into a user-facing French message. */
+/** Normalizes an error into a user-facing French message. */
 export function apiErrorMessage(error: unknown, fallback = 'Une erreur est survenue.'): string {
-  if (axios.isAxiosError(error)) {
-    const data = error.response?.data as { message?: string | string[] } | undefined;
-    if (data?.message) {
-      return Array.isArray(data.message) ? data.message[0] : data.message;
-    }
+  if (error instanceof ApiError) {
     if (error.code === 'ERR_NETWORK') return 'Impossible de joindre le serveur.';
+    if (error.message) return error.message;
   }
   return fallback;
 }

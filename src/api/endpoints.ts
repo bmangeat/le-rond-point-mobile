@@ -108,7 +108,7 @@ export const presencesApi = {
   list: (groupId: string) =>
     api.get<Presence[]>(`/groups/${groupId}/presences`).then((r) => r.data),
   // The API returns 200 with an EMPTY body when the user is not present today,
-  // which axios surfaces as ''. Normalize to null so callers can truthiness-check.
+  // which the client surfaces as ''. Normalize to null so callers can truthiness-check.
   today: (groupId: string) =>
     api.get<Presence | ''>(`/groups/${groupId}/presences/today`).then((r) => r.data || null),
   create: (groupId: string, input: PresenceInput) =>
@@ -172,11 +172,8 @@ export const eventsApi = {
     const form = new FormData();
     // RN FormData accepts a { uri, name, type } object for file parts.
     form.append('file', file as unknown as Blob);
-    return api
-      .post<EventPhoto>(`/groups/${groupId}/events/${id}/photos`, form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-      .then((r) => r.data);
+    // No explicit Content-Type: the runtime sets multipart/form-data + boundary.
+    return api.post<EventPhoto>(`/groups/${groupId}/events/${id}/photos`, form).then((r) => r.data);
   },
   removePhoto: (groupId: string, id: string, photoId: string) =>
     api.delete(`/groups/${groupId}/events/${id}/photos/${photoId}`).then((r) => r.data),
