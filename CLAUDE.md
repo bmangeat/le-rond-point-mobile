@@ -226,10 +226,10 @@ dans `../le-rond-point-api/src/` — les specs décrivent l'app Next.js d'origin
 - **Sorties** : **sélecteur de lieu** (recherche/autocomplétion — actuellement champ texte
   libre ; la date/heure est un picker natif).
 - **Photos de sortie** : bloqué côté API (routes absentes — voir §6).
-- **Polish restant** : **icône d'app + splash art** (actuellement couleur de fond seule, pas
-  d'illustration — nécessite des PNG fournis par un designer), `KeyboardAvoidingView` sur les
-  écrans à scroll (fait sur `PresenceForm` ; reste profil/admin si besoin), upload photo de
-  profil (bloqué API).
+- **Polish restant** : **icône/splash** = placeholder « rond-point » généré (anneau blanc sur
+  bleu, dans `assets/`, créé par script PNG sans dépendance) — à remplacer par un visuel
+  définitif de designer si souhaité ; `KeyboardAvoidingView` reste à ajouter sur profil/admin
+  si recouvrements constatés ; upload photo de profil (bloqué API).
 
 ---
 

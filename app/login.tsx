@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { Image, View, StyleSheet } from 'react-native';
 import { Redirect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/auth/AuthContext';
@@ -19,7 +19,7 @@ export default function Login() {
     <SafeAreaView style={styles.container}>
       <View style={styles.hero}>
         <View style={styles.logo}>
-          <Txt style={{ fontSize: 40 }}>🔵</Txt>
+          <Image source={require('../assets/splash-icon.png')} style={{ width: 64, height: 64 }} resizeMode="contain" />
         </View>
         <Txt variant="title" style={{ marginTop: spacing.lg }}>Le Rond Point</Txt>
         <Txt variant="muted" style={{ textAlign: 'center', marginTop: spacing.sm }}>
